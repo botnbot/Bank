@@ -6,15 +6,7 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 
-from loader import load_user_settings
-
 load_dotenv(".env")
-
-file_path = "user_settings.json"
-data = load_user_settings(file_path)
-user_currencies = data.get("user_currencies", [])
-user_stocks = data.get("user_stocks", [])
-
 
 def convert_xlsx_to_list(file_name: str) -> List[dict]:
     transactions = []
@@ -26,7 +18,7 @@ def convert_xlsx_to_list(file_name: str) -> List[dict]:
         transactions = excel_df.to_dict(orient="records")
 
     except ValueError as e:
-        print(type((e)))
+        print(type(e))
     except Exception as e:
         print(f"Произошла ошибка при чтении файла '{file_name}': {str(e)}")
     return transactions
@@ -55,7 +47,7 @@ def SP500(user_stocks: List[str]) -> dict:
 
 
 def exchange_rate(user_currencies: List[str]) -> Dict[str, Any]:
-    """Функция, возвращающая курс выбранныых валют к рублю"""
+    """Функция, возвращающая курс выбранных валют к рублю"""
     apikey = os.getenv("API_KEY")
     results = {}
     for currency in user_currencies:
@@ -73,6 +65,8 @@ def exchange_rate(user_currencies: List[str]) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     # print(convert_xlsx_to_list('data/operations10.xlsx'))
+    user_currencies = ["USD", "EUR", "RUB", "GBP"]
+    user_stocks = ["AAPL", "AMZN", "GOOGL", "YANDEX", "MSFT", "TSLA"]
     print(SP500(user_stocks))
     print(exchange_rate(user_currencies))
     print("User Currencies:", user_currencies)
