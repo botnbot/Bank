@@ -1,4 +1,5 @@
 {
   "user_currencies": ["USD", "EUR", "RUB", "GBP"],
-  "user_stocks": ["AAPL", "AMZN", "GOOGL", "YANDEX", "MSFT", "TSLA"]
+  "user_stocks": ["AAPL", "AMZN", "GOOGL", "YANDEX", "MSFT", "TSLA"],
+  "path_to_datafile": "data/operations.xlsx"
 }
