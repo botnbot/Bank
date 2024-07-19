@@ -11,22 +11,7 @@ import json
 load_dotenv(".env")
 
 
-def greeting(date_str: str = datetime.now()) -> str:
-    dt = datetime.strptime(date_str, "%d.%m.%Y %H:%M:%S")
-    current_time = dt.time()
 
-    if time(6, 0, 0) <= current_time <= time(10, 59, 59):
-        greeting_message = "Доброе утро"
-    elif time(11, 0, 0) <= current_time <= time(15, 59, 59):
-        greeting_message = "Добрый день"
-    elif time(16, 0, 0) <= current_time <= time(22, 59, 59):
-        greeting_message = "Добрый вечер"
-    else:
-        greeting_message = "Доброй ночи"
-
-    response = {"greeting": greeting_message}
-
-    return json.dumps(response, ensure_ascii=False)
 
 
 def convert_xlsx_to_list(file_name: str) -> List[dict]:
@@ -84,14 +69,13 @@ def exchange_rate(user_currencies: List[str]) -> Dict[str, Any]:
     return results
 
 
-# end_date_time = datetime.strptime(date, date_format)
-# formatted_current_time = current_time.strftime("%d.%m.%Y %H:%M:%S")
 def filter_by_time(transactions: list[dict], end_date: str = None) -> list[dict]:
     """Функция фильтрации транзакций по дате (последние три месяца)"""
 
     date_format_with_time = "%d.%m.%Y %H:%M:%S"
     date_format_without_time = "%d.%m.%Y"
 
+    # Определение даты окончания
     if end_date:
         try:
             end_date_time = datetime.strptime(end_date, date_format_with_time)
@@ -100,23 +84,32 @@ def filter_by_time(transactions: list[dict], end_date: str = None) -> list[dict]
     else:
         end_date_time = datetime.now()
 
+    # Вычисление даты начала
     start_date = end_date_time - relativedelta(months=3)
     last_three_months = []
 
+
+    # Фильтрация транзакций по дате за предшествующие три месяца
     for transaction in transactions:
         transaction_date_str = transaction.get("Дата операции")
         if transaction_date_str:
-            transaction_date = datetime.strptime(transaction_date_str, date_format_with_time)
-            if start_date <= transaction_date <= end_date_time:
+            try:
+                transaction_date = datetime.strptime(transaction_date_str, date_format_with_time)
+            except ValueError:
+                transaction_date = datetime.strptime(transaction_date_str, date_format_without_time)
+            if  start_date <= transaction_date <= end_date_time:
                 last_three_months.append(transaction)
 
     return last_three_months
 
 
-if __name__ == "__main__":
 
-    transactions = convert_xlsx_to_list("data/operations10.xlsx")
-    print(filter_by_time(transactions, "15.11.2021 18:13:29"))
+
+# if __name__ == "__main__":
+
+    # transactions = convert_xlsx_to_list("data/operations.xlsx")
+    # txs = (filter_by_time(transactions,'04.01.2018 14:05:08', ))
+    # print(txs['Дата операции'])
     # user_currencies = ["USD", "EUR", "RUB", "GBP"]
     # user_stocks = ["AAPL", "AMZN", "GOOGL", "YANDEX", "MSFT", "TSLA"]
     # print(SP500(user_stocks))
