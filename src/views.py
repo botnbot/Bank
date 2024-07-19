@@ -2,7 +2,7 @@ import os
 from datetime import datetime, time
 from dateutil.relativedelta import relativedelta
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from dotenv import load_dotenv
 import pandas as pd
 import requests
@@ -11,25 +11,9 @@ import json
 load_dotenv(".env")
 
 
-def greeting(date_str: str = datetime.now()) -> str:
-    dt = datetime.strptime(date_str, "%d.%m.%Y %H:%M:%S")
-    current_time = dt.time()
-
-    if time(6, 0, 0) <= current_time <= time(10, 59, 59):
-        greeting_message = "Доброе утро"
-    elif time(11, 0, 0) <= current_time <= time(15, 59, 59):
-        greeting_message = "Добрый день"
-    elif time(16, 0, 0) <= current_time <= time(22, 59, 59):
-        greeting_message = "Добрый вечер"
-    else:
-        greeting_message = "Доброй ночи"
-
-    response = {"greeting": greeting_message}
-
-    return json.dumps(response, ensure_ascii=False)
 
 
-def SP500(user_stocks: List[str]) -> dict:
+def SP500(user_stocks: list[str]) -> dict:
     stock_prices = {}
     api_key = os.getenv("AV_API_KEY")
     for stock in user_stocks:
@@ -51,7 +35,7 @@ def SP500(user_stocks: List[str]) -> dict:
     return stock_prices
 
 
-def exchange_rate(user_currencies: List[str]) -> Dict[str, Any]:
+def exchange_rate(user_currencies: list[str]) -> dict[str, Any]:
     """Функция, возвращающая курс выбранных валют к рублю"""
     apikey = os.getenv("API_KEY")
     results = {}
@@ -67,3 +51,34 @@ def exchange_rate(user_currencies: List[str]) -> Dict[str, Any]:
             results[currency] = {"rate_to_rub": "N/A", "error": data.get("error", "Unknown error")}
     return results
 
+
+def filter_from_month_begin(transactions: list[dict], end_date: str = None) -> list[dict]:
+    """Функция фильтрации транзакций по дате (с начала месяца)"""
+
+    date_format_with_time = "%d.%m.%Y %H:%M:%S"
+    date_format_without_time = "%d.%m.%Y"
+
+    if end_date:
+        try:
+            end_date_time = datetime.strptime(end_date, date_format_with_time)
+        except ValueError:
+            end_date_time = datetime.strptime(end_date, date_format_without_time)
+    else:
+        end_date_time = datetime.now()
+
+    # Определение даты начала месяца
+    start_date = end_date_time.replace(day=1)
+
+    filtered_transactions = []
+
+    for transaction in transactions:
+        transaction_date_str = transaction.get("Дата операции")
+        if transaction_date_str:
+            try:
+                transaction_date = datetime.strptime(transaction_date_str, date_format_with_time)
+            except ValueError:
+                transaction_date = datetime.strptime(transaction_date_str, date_format_without_time)
+            if start_date <= transaction_date <= end_date_time:
+                filtered_transactions.append(transaction)
+
+    return filtered_transactions
