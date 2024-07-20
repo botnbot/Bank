@@ -1,28 +1,27 @@
-
-from pathlib import Path
 from dotenv import load_dotenv
-import pandas as pd
 from datetime import datetime
+import pandas as pd
+from pathlib import Path
+from typing import List, Dict, Any
 
 load_dotenv(".env")
 
-def convert_xlsx_to_list(file_name: str) -> list[dict]:
-    transactions = []
+def convert_xlsx_to_dataframe(file_name: str) -> pd.DataFrame:
+    df = pd.DataFrame()
     try:
         if not Path(file_name).is_file():
             raise FileNotFoundError(f"Файл '{file_name}' не найден.")
 
-        excel_df = pd.read_excel(file_name)
-        transactions = excel_df.to_dict(orient="records")
+        df = pd.read_excel(file_name)
 
     except ValueError as e:
-        print(type(e))
+        print(f"Произошла ошибка при чтении файла '{file_name}': {e}")
     except Exception as e:
         print(f"Произошла ошибка при чтении файла '{file_name}': {str(e)}")
-    return transactions
 
+    return df
 
-def filter_from_month_begin(transactions: list[dict], end_date: str = None) -> list[dict]:
+def filter_from_month_begin(transactions, end_date: str = None) -> list[dict]:
     """Функция фильтрации транзакций по дате (с начала месяца)"""
 
     # Определение форматов дат

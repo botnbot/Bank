@@ -3,12 +3,12 @@ import os
 from datetime import datetime
 from math import isnan
 from typing import Any
-from utils import filter_from_month_begin
+
+import pandas as pd
 import requests
-from dateutil.relativedelta import relativedelta
 
 from loader import load_user_settings
-from utils import convert_xlsx_to_list
+from utils import convert_xlsx_to_dataframe, filter_from_month_begin
 
 file_path = "user_settings.json"
 data = load_user_settings(file_path)
@@ -17,7 +17,8 @@ user_stocks = data.get("user_stocks", [])
 path_to_datafile = str(data.get("path_to_datafile"))
 
 
-def SP500(user_stocks: list[str]) -> dict:
+def SP500(user_stocks: list[str]) -> dict[str, Any]:
+    """Функция, возвращающая курс выбранных акций"""
     stock_prices = {}
     api_key = os.getenv("AV_API_KEY")
     for stock in user_stocks:
@@ -56,7 +57,6 @@ def exchange_rate(user_currencies: list[str]) -> dict[str, Any]:
     return results
 
 
-# Основная функция
 def create_response(transactions: list[dict[str, Any]], datetime_str: str) -> str:
     # Приветствие
     current_time = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S").time()
@@ -79,20 +79,15 @@ def create_response(transactions: list[dict[str, Any]], datetime_str: str) -> st
             continue
 
         amount = transaction.get("Сумма операции", 0)
-        if isnan(amount):
+        if isinstance(amount, float) and isnan(amount):
             amount = 0
 
-        if card_number not in card_summary:
-            card_summary[card_number] = {"total_spent": 0, "cashback": 0}
+        if amount < 0:  # Учитываем только расходы
+            if card_number not in card_summary:
+                card_summary[card_number] = {"total_spent": 0, "cashback": 0}
 
-        card_summary[card_number]["total_spent"] += amount
-        card_summary[card_number]["cashback"] += amount * 0.01
-
-        if card_number not in card_summary:
-            card_summary[card_number] = {"total_spent": 0, "cashback": 0}
-
-        card_summary[card_number]["total_spent"] += amount
-        card_summary[card_number]["cashback"] += amount * 0.01
+            card_summary[card_number]["total_spent"] += abs(amount)  # Учитываем абсолютное значение
+            card_summary[card_number]["cashback"] += abs(amount) * 0.01
 
     cards = []
     for card_number, summary in card_summary.items():
@@ -104,13 +99,14 @@ def create_response(transactions: list[dict[str, Any]], datetime_str: str) -> st
             }
         )
 
-    # Топ-5 транзакций по сумме
-    top_transactions = sorted(transactions, key=lambda x: abs(x["Сумма операции"]), reverse=True)[:5]
+    # Топ-5 транзакций по сумме (учитываем только расходы)
+    expense_transactions = [trans for trans in transactions if trans["Сумма операции"] < 0]
+    top_transactions = sorted(expense_transactions, key=lambda x: abs(x["Сумма операции"]), reverse=True)[:5]
     top_transactions_list = [
         {
             "date": trans["Дата операции"],
             "amount": trans["Сумма операции"],
-            "category": trans["Категория"],
+            "category": trans["Категория"] if pd.notna(trans["Категория"]) else "",  # Замена NaN на пустую строку
             "description": trans["Описание"],
         }
         for trans in top_transactions
@@ -130,12 +126,10 @@ def create_response(transactions: list[dict[str, Any]], datetime_str: str) -> st
 
     return json.dumps(response, ensure_ascii=False, indent=4)
 
-
 if __name__ == "__main__":
-    all_transactions = convert_xlsx_to_list(path_to_datafile)
-    datetime_str = "2018-07-19 14:45:00"
-    transactions = filter_from_month_begin(all_transactions, datetime_str)
-
-    print(transactions)
+    all_transactions = convert_xlsx_to_dataframe(path_to_datafile)
+    datetime_str = "2018-01-19 14:45:00"
+    trxns = all_transactions.to_dict(orient="records")
+    transactions = filter_from_month_begin(trxns, datetime_str)
     response_json = create_response(transactions, datetime_str)
     print(response_json)
