@@ -3,6 +3,8 @@ from datetime import datetime
 import pandas as pd
 from pathlib import Path
 from typing import Any
+import re
+import json
 
 load_dotenv(".env")
 
@@ -82,3 +84,23 @@ def filter_from_month_begin(transactions: list, end_date: Any = datetime.now()) 
                 filtered_transactions.append(transaction)
 
     return filtered_transactions
+
+
+def filter_personal_transfers(transactions):
+    """Функция фильтрации переводов физ.лицам"""
+    name_pattern = re.compile(r"[А-ЯЁ][а-яё]+\s[А-ЯЁ]\.")
+
+    def is_personal_transfer(transaction):
+        """Функция прверки категории и описания"""
+        category_check = transaction.get("Категория") == "Переводы"
+        description_check = name_pattern.search(transaction.get("Описание", ""))
+        return category_check and description_check
+
+    cleaned_transactions = [
+        {k: ("" if pd.isna(v) else v) for k, v in transaction.items()} for transaction in transactions
+    ]
+
+    filtered_transactions = filter(is_personal_transfer, cleaned_transactions)
+
+
+    return json.dumps(list(filtered_transactions), ensure_ascii=False, indent=4)
