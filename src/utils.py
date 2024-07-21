@@ -5,6 +5,12 @@ from pathlib import Path
 from typing import Any
 import re
 import json
+import os
+from datetime import datetime
+from math import isnan
+from typing import Any
+import requests
+
 
 load_dotenv(".env")
 
@@ -15,14 +21,11 @@ def convert_xlsx_to_dataframe(file_name: str) -> pd.DataFrame:
     try:
         if not Path(file_name).is_file():
             raise FileNotFoundError(f"Файл '{file_name}' не найден.")
-
         df = pd.read_excel(file_name)
-
     except ValueError as e:
         print(f"Произошла ошибка при чтении файла '{file_name}': {e}")
     except Exception as e:
         print(f"Произошла ошибка при чтении файла '{file_name}': {str(e)}")
-
     return df
 
 
@@ -31,15 +34,12 @@ def convert_xlsx_to_list(file_name: str) -> list:
     try:
         if not Path(file_name).is_file():
             raise FileNotFoundError(f"Файл '{file_name}' не найден.")
-
         excel_df = pd.read_excel(file_name)
         transactions = excel_df.to_dict(orient="records")
-
     except ValueError as e:
         print(f"Произошла ошибка при чтении файла '{file_name}': {e}")
     except Exception as e:
         print(f"Произошла ошибка при чтении файла '{file_name}': {str(e)}")
-
     return transactions
 
 
@@ -95,12 +95,53 @@ def filter_personal_transfers(transactions):
         category_check = transaction.get("Категория") == "Переводы"
         description_check = name_pattern.search(transaction.get("Описание", ""))
         return category_check and description_check
-
     cleaned_transactions = [
         {k: ("" if pd.isna(v) else v) for k, v in transaction.items()} for transaction in transactions
     ]
-
     filtered_transactions = filter(is_personal_transfer, cleaned_transactions)
-
-
     return json.dumps(list(filtered_transactions), ensure_ascii=False, indent=4)
+
+
+def SP500(user_stocks: list[str]) -> dict[str, Any]:
+    """Функция, возвращающая курс выбранных акций"""
+    stock_prices = {}
+    api_key = os.getenv("AV_API_KEY")
+    for stock in user_stocks:
+        url = (f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol"
+               f"={stock}&interval=1min&apikey={api_key}")
+        response = requests.get(url)
+        data = response.json()
+
+        if "Meta Data" in data:
+            try:
+                last_refreshed = data["Meta Data"]["3. Last Refreshed"]
+                stock_prices[stock] = data["Time Series (1min)"][last_refreshed]["1. open"]
+            except KeyError:
+                stock_prices[stock] = "N/A"
+                print(f"Ошибка получения данных для акции {stock}: Неверная структура данных")
+        else:
+            stock_prices[stock] = "N/A"
+            print(f"Ошибка получения данных для акции {stock}: {data}")
+    return stock_prices
+
+
+def exchange_rate(user_currencies: list[str]) -> dict[str, Any]:
+    """Функция, возвращающая курс выбранных валют к рублю"""
+    apikey = os.getenv("API_KEY")
+    results = {}
+    for currency in user_currencies:
+        url = f"https://api.apilayer.com/exchangerates_data/convert?to=RUB&from={currency}&amount=1"
+        headers = {"apikey": apikey}
+        response = requests.get(url, headers=headers)
+        data = response.json()
+
+        if "result" in data:
+            results[currency] = round(data["result"], 2)
+        else:
+            results[currency] = {"rate_to_rub": "N/A", "error": data.get("error", "Unknown error")}
+    return results
+
+
+
+
+
