@@ -2,11 +2,13 @@ from dotenv import load_dotenv
 from datetime import datetime
 import pandas as pd
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any
 
 load_dotenv(".env")
 
+
 def convert_xlsx_to_dataframe(file_name: str) -> pd.DataFrame:
+    '''Функция преобразующая файл xlsx в DataFrame'''
     df = pd.DataFrame()
     try:
         if not Path(file_name).is_file():
@@ -21,7 +23,25 @@ def convert_xlsx_to_dataframe(file_name: str) -> pd.DataFrame:
 
     return df
 
-def filter_from_month_begin(transactions, end_date: str = None) -> list[dict]:
+
+def convert_xlsx_to_list(file_name: str) -> list:
+    transactions = []
+    try:
+        if not Path(file_name).is_file():
+            raise FileNotFoundError(f"Файл '{file_name}' не найден.")
+
+        excel_df = pd.read_excel(file_name)
+        transactions = excel_df.to_dict(orient="records")
+
+    except ValueError as e:
+        print(f"Произошла ошибка при чтении файла '{file_name}': {e}")
+    except Exception as e:
+        print(f"Произошла ошибка при чтении файла '{file_name}': {str(e)}")
+
+    return transactions
+
+
+def filter_from_month_begin(transactions: list, end_date: Any = datetime.now()) -> list[dict]:
     """Функция фильтрации транзакций по дате (с начала месяца)"""
 
     # Определение форматов дат
@@ -62,4 +82,3 @@ def filter_from_month_begin(transactions, end_date: str = None) -> list[dict]:
                 filtered_transactions.append(transaction)
 
     return filtered_transactions
-

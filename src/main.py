@@ -10,19 +10,14 @@ import requests
 from loader import load_user_settings
 from utils import convert_xlsx_to_dataframe, filter_from_month_begin
 
-file_path = "user_settings.json"
-data = load_user_settings(file_path)
-user_currencies = data.get("user_currencies", [])
-user_stocks = data.get("user_stocks", [])
-path_to_datafile = str(data.get("path_to_datafile"))
-
 
 def SP500(user_stocks: list[str]) -> dict[str, Any]:
     """Функция, возвращающая курс выбранных акций"""
     stock_prices = {}
     api_key = os.getenv("AV_API_KEY")
     for stock in user_stocks:
-        url = f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={stock}&interval=1min&apikey={api_key}"
+        url = (f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol"
+               f"={stock}&interval=1min&apikey={api_key}")
         response = requests.get(url)
         data = response.json()
 
@@ -115,7 +110,6 @@ def create_response(transactions: list[dict[str, Any]], datetime_str: str) -> st
     exchange_rates = exchange_rate(user_currencies)
     stock_prices = SP500(user_stocks)
 
-    # Формирование итогового JSON-ответа
     response = {
         "greeting": greeting,
         "cards": cards,
@@ -126,9 +120,15 @@ def create_response(transactions: list[dict[str, Any]], datetime_str: str) -> st
 
     return json.dumps(response, ensure_ascii=False, indent=4)
 
+
 if __name__ == "__main__":
+    datetime_str = input('Введите дату в формате YYYY-MM-DD HH:MM:SS  ')
+    file_path = "user_settings.json"
+    data = load_user_settings(file_path)
+    user_currencies = data.get("user_currencies", [])
+    user_stocks = data.get("user_stocks", [])
+    path_to_datafile = str(data.get("path_to_datafile"))
     all_transactions = convert_xlsx_to_dataframe(path_to_datafile)
-    datetime_str = "2018-01-19 14:45:00"
     trxns = all_transactions.to_dict(orient="records")
     transactions = filter_from_month_begin(trxns, datetime_str)
     response_json = create_response(transactions, datetime_str)
