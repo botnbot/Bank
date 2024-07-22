@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 from dotenv import load_dotenv
 import pandas as pd
-import requests
 import json
 from math import isnan
 
@@ -17,7 +16,17 @@ load_dotenv(".env")
 
 def create_response(transactions: list[dict[str, Any]], datetime_str: str) -> str:
     """Функция формирования JSON-ответа"""
-    current_time = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S").time()
+    date_format_with_time = "%Y-%m-%d %H:%M:%S"
+    date_format_without_time = "%Y-%m-%d"
+    try:
+              current_datetime = datetime.strptime(datetime_str, date_format_with_time)
+    except ValueError:
+        try:
+            current_datetime = datetime.strptime(datetime_str, date_format_without_time)
+        except ValueError:
+            print("Неверный формат даты и времени. Будет использовано текущее время.")
+            current_datetime = datetime.now()
+    current_time = current_datetime.time()
     if 5 <= current_time.hour < 12:
         greeting = "Доброе утро"
     elif 12 <= current_time.hour < 18:
@@ -26,8 +35,6 @@ def create_response(transactions: list[dict[str, Any]], datetime_str: str) -> st
         greeting = "Добрый вечер"
     else:
         greeting = "Доброй ночи"
-
-    # Суммирование трат по картам
     card_summary = {}
     for transaction in transactions:
         card_number = transaction.get("Номер карты")
@@ -35,18 +42,14 @@ def create_response(transactions: list[dict[str, Any]], datetime_str: str) -> st
             card_number = card_number[-4:]
         else:
             continue
-
         amount = transaction.get("Сумма операции", 0)
         if isinstance(amount, float) and isnan(amount):
             amount = 0
-
-        if amount < 0:  # Учитываем только расходы
+        if amount < 0:
             if card_number not in card_summary:
                 card_summary[card_number] = {"total_spent": 0, "cashback": 0}
-
-            card_summary[card_number]["total_spent"] += abs(amount)  # Учитываем абсолютное значение
+            card_summary[card_number]["total_spent"] += abs(amount)
             card_summary[card_number]["cashback"] += abs(amount) * 0.01
-
     cards = []
     for card_number, summary in card_summary.items():
         cards.append(
@@ -64,7 +67,7 @@ def create_response(transactions: list[dict[str, Any]], datetime_str: str) -> st
         {
             "date": trans["Дата операции"],
             "amount": trans["Сумма операции"],
-            "category": trans["Категория"] if pd.notna(trans["Категория"]) else "",  # Замена NaN на пустую строку
+            "category": trans["Категория"] if pd.notna(trans["Категория"]) else "",
             "description": trans["Описание"],
         }
         for trans in top_transactions
