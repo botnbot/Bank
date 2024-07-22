@@ -1,6 +1,7 @@
 from loader import load_user_settings
 from utils import convert_xlsx_to_list, filter_from_month_begin, filter_personal_transfers
 
+
 def personal_transfers():
     datetime_str = input("Введите дату в формате YYYY-MM-DD HH:MM:SS  ")
     file_path = "user_settings.json"
@@ -10,4 +11,6 @@ def personal_transfers():
     filtered_month = filter_from_month_begin(transactions, datetime_str)
     result = filter_personal_transfers(filtered_month)
     return result
+
+
 print("Переводы физлицам:", personal_transfers())

@@ -4,22 +4,20 @@ import re
 from datetime import datetime
 from math import isnan
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import pandas as pd
 import requests
 from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
 
-# import os
-# from utils import convert_xlsx_to_dataframe, filter_from_month_begin, exchange_rate, SP500
 from loader import load_user_settings
 
 load_dotenv(".env")
 
 
 def convert_xlsx_to_dataframe(file_name: str) -> pd.DataFrame:
-    '''Функция преобразующая файл xlsx в DataFrame'''
+    """Функция преобразующая файл xlsx в DataFrame"""
     df = pd.DataFrame()
     try:
         if not Path(file_name).is_file():
@@ -92,16 +90,16 @@ def filter_transactions_3m(transactions: list[dict[str, Any]], date_str: Optiona
         if date_str is None:
             date_str = datetime.now()
         else:
-            date_str = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+            date_str = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
     except ValueError:
         date_str = datetime.now()
     three_months_ago = date_str - relativedelta(months=3)
     filtered_transactions_3m = []
     for transaction in transactions:
-        date_str = transaction.get('Дата операции')
+        date_str = transaction.get("Дата операции")
         if date_str:
             try:
-                transaction_date = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+                transaction_date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
                 if transaction_date >= three_months_ago:
                     filtered_transactions_3m.append(transaction)
             except ValueError:
@@ -131,8 +129,10 @@ def SP500(user_stocks: list[str]) -> dict[str, Any]:
     stock_prices = {}
     api_key = os.getenv("AV_API_KEY")
     for stock in user_stocks:
-        url = (f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol"
-               f"={stock}&interval=1min&apikey={api_key}")
+        url = (
+            f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol"
+            f"={stock}&interval=1min&apikey={api_key}"
+        )
         response = requests.get(url)
         data = response.json()
 
@@ -167,9 +167,9 @@ def exchange_rate(user_currencies: list[str]) -> dict[str, Any]:
 
 
 def filter_transactions_by_category(transactions: list[dict[str, any]], category: str) -> pd.DataFrame:
-    """ Фильтрует транзакции по заданной категории и возвращает DataFrame."""
+    """Фильтрует транзакции по заданной категории и возвращает DataFrame."""
     df = pd.DataFrame(transactions)
-    filtered_df = df[df['category'] == category]
+    filtered_df = df[df["category"] == category]
     return filtered_df
 
 
@@ -185,7 +185,7 @@ def create_response(datetime_str: str) -> str:
     date_format_with_time = "%Y-%m-%d %H:%M:%S"
     date_format_without_time = "%Y-%m-%d"
     try:
-              current_datetime = datetime.strptime(datetime_str, date_format_with_time)
+        current_datetime = datetime.strptime(datetime_str, date_format_with_time)
     except ValueError:
         try:
             current_datetime = datetime.strptime(datetime_str, date_format_without_time)
