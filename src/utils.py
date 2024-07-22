@@ -10,7 +10,9 @@ from datetime import datetime
 from math import isnan
 from typing import Any
 import requests
-
+from datetime import datetime
+from typing import List, Dict, Any, Optional
+from dateutil.relativedelta import relativedelta
 
 load_dotenv(".env")
 
@@ -60,10 +62,7 @@ def filter_from_month_begin(transactions: list, end_date: Any = datetime.now()) 
             end_date_time = datetime.strptime(end_date, date_format_without_time_iso)
     else:
         end_date_time = datetime.now()
-
-    # Определение даты начала месяца
     start_date = end_date_time.replace(day=1)
-
     filtered_transactions = []
 
     for transaction in transactions:
@@ -86,6 +85,29 @@ def filter_from_month_begin(transactions: list, end_date: Any = datetime.now()) 
     return filtered_transactions
 
 
+def filter_transactions_3m(transactions: list[dict[str, Any]], date_str: Optional[str] = None) -> list[dict[str, Any]]:
+    """Функция фильтрации транзакций за последние три месяца от заданной даты"""
+    try:
+        if date_str is None:
+            date_str = datetime.now()
+        else:
+            date_str = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        date_str = datetime.now()
+    three_months_ago = date_str - relativedelta(months=3)
+    filtered_transactions_3m = []
+    for transaction in transactions:
+        date_str = transaction.get('Дата операции')
+        if date_str:
+            try:
+                transaction_date = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+                if transaction_date >= three_months_ago:
+                    filtered_transactions_3m.append(transaction)
+            except ValueError:
+                continue
+    return filtered_transactions_3m
+
+
 def filter_personal_transfers(transactions):
     """Функция фильтрации переводов физ.лицам"""
     name_pattern = re.compile(r"[А-ЯЁ][а-яё]+\s[А-ЯЁ]\.")
@@ -95,6 +117,7 @@ def filter_personal_transfers(transactions):
         category_check = transaction.get("Категория") == "Переводы"
         description_check = name_pattern.search(transaction.get("Описание", ""))
         return category_check and description_check
+
     cleaned_transactions = [
         {k: ("" if pd.isna(v) else v) for k, v in transaction.items()} for transaction in transactions
     ]
@@ -142,6 +165,8 @@ def exchange_rate(user_currencies: list[str]) -> dict[str, Any]:
     return results
 
 
-
-
-
+def filter_transactions_by_category(transactions: list[dict[str, any]], category: str) -> pd.DataFrame:
+    """ Фильтрует транзакции по заданной категории и возвращает DataFrame."""
+    df = pd.DataFrame(transactions)
+    filtered_df = df[df['category'] == category]
+    return filtered_df

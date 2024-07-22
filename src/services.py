@@ -9,5 +9,5 @@ path_to_datafile = str(data.get("path_to_datafile"))
 transactions = convert_xlsx_to_list(path_to_datafile)
 filtered_month = filter_from_month_begin(transactions, datetime_str)
 result = filter_personal_transfers(filtered_month)
-
 print("Filtered Transactions:", result)
+
