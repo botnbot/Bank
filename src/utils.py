@@ -84,7 +84,7 @@ def filter_from_month_begin(transactions: list, end_date: Any = datetime.now()) 
     return filtered_transactions
 
 
-def filter_transactions_3m(transactions: list[dict[str, Any]], date_str: Optional[str] = None) -> list[dict[str, Any]]:
+def filter_transactions_3_months(transactions: list[dict[str, Any]], date_str: Optional[str] = None) -> list[dict[str, Any]]:
     """Функция фильтрации транзакций за последние три месяца от заданной даты"""
     try:
         if date_str is None:
@@ -126,50 +126,56 @@ def filter_personal_transfers(transactions):
 
 def SP500(user_stocks: list[str]) -> dict[str, Any]:
     """Функция, возвращающая курс выбранных акций"""
-    stock_prices = {}
-    api_key = os.getenv("AV_API_KEY")
-    for stock in user_stocks:
-        url = (
-            f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol"
-            f"={stock}&interval=1min&apikey={api_key}"
-        )
-        response = requests.get(url)
-        data = response.json()
-
-        if "Meta Data" in data:
-            try:
-                last_refreshed = data["Meta Data"]["3. Last Refreshed"]
-                stock_prices[stock] = data["Time Series (1min)"][last_refreshed]["1. open"]
-            except KeyError:
-                stock_prices[stock] = "N/A"
-                print(f"Ошибка получения данных для акции {stock}: Неверная структура данных")
-        else:
-            stock_prices[stock] = "N/A"
-            print(f"Ошибка получения данных для акции {stock}: {data}")
-    return stock_prices
+    pass
+    # stock_prices = {}
+    # api_key = os.getenv("AV_API_KEY")
+    # for stock in user_stocks:
+    #     url = (
+    #         f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY"
+    #         f"&symbol={stock}&interval=1min&apikey={api_key}"
+    #     )
+    #     response = requests.get(url)
+    #     data = response.json()
+    #
+    #     if "Meta Data" in data:
+    #         try:
+    #             last_refreshed = data["Meta Data"]["3. Last Refreshed"]
+    #             stock_prices[stock] = data["Time Series (1min)"][last_refreshed]["1. open"]
+    #         except KeyError:
+    #             stock_prices[stock] = "N/A"
+    #             print(f"Ошибка получения данных для акции {stock}: Неверная структура данных")
+    #     else:
+    #         stock_prices[stock] = "N/A"
+    #         print(f"Ошибка получения данных для акции {stock}: {data}")
+    # return stock_prices
 
 
 def exchange_rate(user_currencies: list[str]) -> dict[str, Any]:
     """Функция, возвращающая курс выбранных валют к рублю"""
+    pass
     apikey = os.getenv("API_KEY")
     results = {}
-    for currency in user_currencies:
-        url = f"https://api.apilayer.com/exchangerates_data/convert?to=RUB&from={currency}&amount=1"
-        headers = {"apikey": apikey}
-        response = requests.get(url, headers=headers)
-        data = response.json()
-
-        if "result" in data:
-            results[currency] = round(data["result"], 2)
-        else:
-            results[currency] = {"rate_to_rub": "N/A", "error": data.get("error", "Unknown error")}
-    return results
+    # for currency in user_currencies:
+    #     url = f"https://api.apilayer.com/exchangerates_data/convert?to=RUB&from={currency}&amount=1"
+    #     headers = {"apikey": apikey}
+    #     response = requests.get(url, headers=headers)
+    #     data = response.json()
+    #
+    #     if "result" in data:
+    #         results[currency] = round(data["result"], 2)
+    #     else:
+    #         results[currency] = {"rate_to_rub": "N/A", "error": data.get("error", "Unknown error")}
+    # return results
 
 
 def filter_transactions_by_category(transactions: list[dict[str, any]], category: str) -> pd.DataFrame:
     """Фильтрует транзакции по заданной категории и возвращает DataFrame."""
     df = pd.DataFrame(transactions)
-    filtered_df = df[df["category"] == category]
+    try:
+            filtered_df = df[df["category"] == category]
+    except KeyError:
+        filtered_df = []
+        print('По выбраной категории в указанный период трат нет')
     return filtered_df
 
 
@@ -182,6 +188,7 @@ def create_response(datetime_str: str) -> str:
     all_transactions = convert_xlsx_to_dataframe(path_to_datafile)
     trxns = all_transactions.to_dict(orient="records")
     transactions = filter_from_month_begin(trxns, datetime_str)
+
     date_format_with_time = "%Y-%m-%d %H:%M:%S"
     date_format_without_time = "%Y-%m-%d"
     try:
