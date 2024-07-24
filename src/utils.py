@@ -43,6 +43,16 @@ def convert_xlsx_to_list(file_name: str) -> list:
         print(f"Произошла ошибка при чтении файла '{file_name}': {str(e)}")
     return transactions
 
+def  greeting():
+        current_time = datetime.now()
+        if 5 <= current_time.hour < 12:
+            return "Доброе утро"
+        elif 12 <= current_time.hour < 18:
+            return  "Добрый день"
+        elif 18 <= current_time.hour < 23:
+            return  "Добрый вечер"
+        else:
+            return  "Доброй ночи"
 
 def filter_from_month_begin(transactions: list, end_date: Any = datetime.now()) -> list[dict]:
     """Функция фильтрации транзакций по дате (с начала месяца)"""
@@ -84,35 +94,34 @@ def filter_from_month_begin(transactions: list, end_date: Any = datetime.now()) 
     return filtered_transactions
 
 
-def filter_transactions_3_months(transactions: list[dict[str, Any]], date_str: Optional[str] = None) -> list[dict[str, Any]]:
-    """Функция фильтрации транзакций за последние три месяца от заданной даты"""
-    try:
-        if date_str is None:
-            date_str = datetime.now()
-        else:
-            date_str = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-    except ValueError:
-        date_str = datetime.now()
-    three_months_ago = date_str - relativedelta(months=3)
+def filter_transactions_3_months(transactions: list[dict[str, Any]], date) -> list[
+    dict[str, Any]]:
+
+
+
+    three_months_ago = date - relativedelta(months=3)
+    print(f'Начало отсчета периода {three_months_ago}')
+    print(f'Конец отсчета периода {date}')
     filtered_transactions_3m = []
+
     for transaction in transactions:
-        date_str = transaction.get("Дата операции")
-        if date_str:
-            try:
-                transaction_date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-                if transaction_date >= three_months_ago:
+        trxn_date_str = transaction.get("Дата операции")
+        if trxn_date_str:
+            transaction_date =  datetime.strptime(trxn_date_str, "%d.%m.%Y %H:%M:%S")
+            if transaction_date:
+                if date >= transaction_date >= three_months_ago:
+                    print(transaction_date)
                     filtered_transactions_3m.append(transaction)
-            except ValueError:
-                continue
+
     return filtered_transactions_3m
 
 
-def filter_personal_transfers(transactions):
+def filter_personal_transfers(transactions: list[dict]) -> Any:
     """Функция фильтрации переводов физ.лицам"""
     name_pattern = re.compile(r"[А-ЯЁ][а-яё]+\s[А-ЯЁ]\.")
 
     def is_personal_transfer(transaction):
-        """Функция прверки категории и описания"""
+        """Функция прверки категории и описания транзакции"""
         category_check = transaction.get("Категория") == "Переводы"
         description_check = name_pattern.search(transaction.get("Описание", ""))
         return category_check and description_check
@@ -142,7 +151,7 @@ def SP500(user_stocks: list[str]) -> dict[str, Any]:
                 stock_prices[stock] = data["Time Series (1min)"][last_refreshed]["1. open"]
             except KeyError:
                 stock_prices[stock] = "N/A"
-                print(f"Ошибка получения данных для акции {stock}: Неверная структура данных")
+                print(f"Ошибка получения данных для акции {stock}: Неверный код валюты")
         else:
             stock_prices[stock] = "N/A"
             print(f"Ошибка получения данных для акции {stock}: {data}")
@@ -166,14 +175,15 @@ def exchange_rate(user_currencies: list[str]) -> dict[str, Any]:
     return results
 
 
+import pandas as pd
+
+
 def filter_transactions_by_category(transactions: list[dict[str, any]], category: str) -> pd.DataFrame:
     """Фильтрует транзакции по заданной категории и возвращает DataFrame."""
     df = pd.DataFrame(transactions)
-    try:
-            filtered_df = df[df["category"] == category]
-    except KeyError:
-        filtered_df = []
-        print('По выбраной категории в указанный период трат нет')
+    filtered_df = df[df["Категория"] == category]
+    if filtered_df.empty:
+        print('По выбранной категории в указанный период трат нет')
     return filtered_df
 
 
@@ -187,25 +197,6 @@ def create_response(datetime_str: str) -> str:
     trxns = all_transactions.to_dict(orient="records")
     transactions = filter_from_month_begin(trxns, datetime_str)
 
-    date_format_with_time = "%Y-%m-%d %H:%M:%S"
-    date_format_without_time = "%Y-%m-%d"
-    try:
-        current_datetime = datetime.strptime(datetime_str, date_format_with_time)
-    except ValueError:
-        try:
-            current_datetime = datetime.strptime(datetime_str, date_format_without_time)
-        except ValueError:
-            print("Неверный формат даты и времени. Будет использовано текущее время.")
-            current_datetime = datetime.now()
-    current_time = current_datetime.time()
-    if 5 <= current_time.hour < 12:
-        greeting = "Доброе утро"
-    elif 12 <= current_time.hour < 18:
-        greeting = "Добрый день"
-    elif 18 <= current_time.hour < 23:
-        greeting = "Добрый вечер"
-    else:
-        greeting = "Доброй ночи"
     card_summary = {}
     for transaction in transactions:
         card_number = transaction.get("Номер карты")
@@ -231,7 +222,7 @@ def create_response(datetime_str: str) -> str:
             }
         )
 
-    # Топ-5 транзакций по сумме (учитываем только расходы)
+    # Топ-5 транзакций по сумме
     expense_transactions = [trans for trans in transactions if trans["Сумма операции"] < 0]
     top_transactions = sorted(expense_transactions, key=lambda x: abs(x["Сумма операции"]), reverse=True)[:5]
     top_transactions_list = [
@@ -246,6 +237,7 @@ def create_response(datetime_str: str) -> str:
 
     exchange_rates = exchange_rate(user_currencies)
     stock_prices = SP500(user_stocks)
+    greeting = greeting
 
     response = {
         "greeting": greeting,
@@ -256,3 +248,5 @@ def create_response(datetime_str: str) -> str:
     }
 
     return json.dumps(response, ensure_ascii=False, indent=4)
+
+
