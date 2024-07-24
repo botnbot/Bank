@@ -66,11 +66,13 @@ def filter_from_month_begin(transactions: list, end_date: Any = datetime.now()) 
     # Определение даты окончания
     if end_date:
         try:
-            end_date_time = datetime.strptime(end_date, date_format_with_time_iso)
-        except ValueError:
             end_date_time = datetime.strptime(end_date, date_format_without_time_iso)
+        except ValueError:
+            print('Введена некорректная дата. Будет использована текущая дата')
+            end_date_time = datetime.now()
     else:
         end_date_time = datetime.now()
+
     start_date = end_date_time.replace(day=1)
     filtered_transactions = []
 
@@ -90,15 +92,11 @@ def filter_from_month_begin(transactions: list, end_date: Any = datetime.now()) 
                         transaction_date = datetime.strptime(transaction_date_str, date_format_without_time_rus)
             if start_date <= transaction_date <= end_date_time:
                 filtered_transactions.append(transaction)
-
     return filtered_transactions
 
 
-def filter_transactions_3_months(transactions: list[dict[str, Any]], date) -> list[
+def filter_transactions_3_months(transactions: list[dict[str, Any]], date: Optional = datetime.now()) -> list[
     dict[str, Any]]:
-
-
-
     three_months_ago = date - relativedelta(months=3)
     print(f'Начало отсчета периода {three_months_ago}')
     print(f'Конец отсчета периода {date}')
@@ -120,12 +118,12 @@ def filter_personal_transfers(transactions: list[dict]) -> Any:
     """Функция фильтрации переводов физ.лицам"""
     name_pattern = re.compile(r"[А-ЯЁ][а-яё]+\s[А-ЯЁ]\.")
 
+
     def is_personal_transfer(transaction):
         """Функция прверки категории и описания транзакции"""
         category_check = transaction.get("Категория") == "Переводы"
         description_check = name_pattern.search(transaction.get("Описание", ""))
         return category_check and description_check
-
     cleaned_transactions = [
         {k: ("" if pd.isna(v) else v) for k, v in transaction.items()} for transaction in transactions
     ]
@@ -179,16 +177,28 @@ import pandas as pd
 
 
 def filter_transactions_by_category(transactions: list[dict[str, any]], category: str) -> pd.DataFrame:
-    """Фильтрует транзакции по заданной категории и возвращает DataFrame."""
+    """Фильтрует транзакции по заданной категории  за последние 3 месяца и возвращает DataFrame."""
+    if not transactions:
+        print('Нет транзакций по заданной категории')
+        return pd.DataFrame()  # Возвращаем пустой DataFrame
+
     df = pd.DataFrame(transactions)
+
+    # Проверяем, есть ли столбец "Категория"
+    if "Категория" not in df.columns:
+        raise ValueError('В данных нет столбца "Категория"')
+
     filtered_df = df[df["Категория"] == category]
+
     if filtered_df.empty:
         print('По выбранной категории в указанный период трат нет')
+
     return filtered_df
 
 
 def create_response(datetime_str: str) -> str:
     """Функция формирования JSON-ответа для главной страницы"""
+    from utils import greeting
     data = load_user_settings("user_settings.json")
     user_currencies = data.get("user_currencies", [])
     user_stocks = data.get("user_stocks", [])
@@ -205,7 +215,7 @@ def create_response(datetime_str: str) -> str:
         else:
             continue
         amount = transaction.get("Сумма операции", 0)
-        if isinstance(amount, float) and isnan(amount):
+        if isinstance and isnan(amount):
             amount = 0
         if amount < 0:
             if card_number not in card_summary:
@@ -237,7 +247,7 @@ def create_response(datetime_str: str) -> str:
 
     exchange_rates = exchange_rate(user_currencies)
     stock_prices = SP500(user_stocks)
-    greeting = greeting
+    greeting = greeting()
 
     response = {
         "greeting": greeting,

@@ -25,10 +25,15 @@ while menu not in ("1", "2", "3"):
         print(personal_transfers(datetime_str))
     elif menu == "3":
         print(" Выбран очет по категории трат ")
-        date = datetime.strptime(datetime_str, "%Y-%m-%d")
+
         data = load_user_settings("user_settings.json")
         path_to_datafile = str(data.get("path_to_datafile"))
         df_to_func = pd.read_excel(path_to_datafile)   #преобразуем из Excel, т.к. DataFrame взять негде
         cat = input("Введите категорию трат\n")
+        try:
+            date = datetime.strptime(datetime_str, "%Y-%m-%d")
+        except ValueError:
+            print('Введена некорректная дата. Будет использована текущая дата')
+            date = datetime.now()
         result_df = spending_by_category(df_to_func, cat, date)
         print(result_df)
