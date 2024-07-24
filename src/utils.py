@@ -43,16 +43,18 @@ def convert_xlsx_to_list(file_name: str) -> list:
         print(f"Произошла ошибка при чтении файла '{file_name}': {str(e)}")
     return transactions
 
-def  greeting():
-        current_time = datetime.now()
-        if 5 <= current_time.hour < 12:
-            return "Доброе утро"
-        elif 12 <= current_time.hour < 18:
-            return  "Добрый день"
-        elif 18 <= current_time.hour < 23:
-            return  "Добрый вечер"
-        else:
-            return  "Доброй ночи"
+
+def greeting():
+    current_time = datetime.now()
+    if 5 <= current_time.hour < 12:
+        return "Доброе утро"
+    elif 12 <= current_time.hour < 18:
+        return "Добрый день"
+    elif 18 <= current_time.hour < 23:
+        return "Добрый вечер"
+    else:
+        return "Доброй ночи"
+
 
 def filter_from_month_begin(transactions: list, end_date: Any = datetime.now()) -> list[dict]:
     """Функция фильтрации транзакций по дате (с начала месяца)"""
@@ -68,7 +70,7 @@ def filter_from_month_begin(transactions: list, end_date: Any = datetime.now()) 
         try:
             end_date_time = datetime.strptime(end_date, date_format_without_time_iso)
         except ValueError:
-            print('Введена некорректная дата. Будет использована текущая дата')
+            print("Введена некорректная дата. Будет использована текущая дата")
             end_date_time = datetime.now()
     else:
         end_date_time = datetime.now()
@@ -95,20 +97,20 @@ def filter_from_month_begin(transactions: list, end_date: Any = datetime.now()) 
     return filtered_transactions
 
 
-def filter_transactions_3_months(transactions: list[dict[str, Any]], date: Optional = datetime.now()) -> list[
-    dict[str, Any]]:
+def filter_transactions_3_months(
+    transactions: list[dict[str, Any]], date: Optional = datetime.now()
+) -> list[dict[str, Any]]:
     three_months_ago = date - relativedelta(months=3)
-    print(f'Начало отсчета периода {three_months_ago}')
-    print(f'Конец отсчета периода {date}')
+    print(f"Начало отсчета периода {three_months_ago}")
+    print(f"Конец отсчета периода {date}")
     filtered_transactions_3m = []
 
     for transaction in transactions:
         trxn_date_str = transaction.get("Дата операции")
         if trxn_date_str:
-            transaction_date =  datetime.strptime(trxn_date_str, "%d.%m.%Y %H:%M:%S")
+            transaction_date = datetime.strptime(trxn_date_str, "%d.%m.%Y %H:%M:%S")
             if transaction_date:
                 if date >= transaction_date >= three_months_ago:
-                    print(transaction_date)
                     filtered_transactions_3m.append(transaction)
 
     return filtered_transactions_3m
@@ -118,12 +120,12 @@ def filter_personal_transfers(transactions: list[dict]) -> Any:
     """Функция фильтрации переводов физ.лицам"""
     name_pattern = re.compile(r"[А-ЯЁ][а-яё]+\s[А-ЯЁ]\.")
 
-
     def is_personal_transfer(transaction):
         """Функция прверки категории и описания транзакции"""
         category_check = transaction.get("Категория") == "Переводы"
         description_check = name_pattern.search(transaction.get("Описание", ""))
         return category_check and description_check
+
     cleaned_transactions = [
         {k: ("" if pd.isna(v) else v) for k, v in transaction.items()} for transaction in transactions
     ]
@@ -165,7 +167,6 @@ def exchange_rate(user_currencies: list[str]) -> dict[str, Any]:
         headers = {"apikey": apikey}
         response = requests.get(url, headers=headers)
         data = response.json()
-
         if "result" in data:
             results[currency] = round(data["result"], 2)
         else:
@@ -173,38 +174,28 @@ def exchange_rate(user_currencies: list[str]) -> dict[str, Any]:
     return results
 
 
-import pandas as pd
-
-
 def filter_transactions_by_category(transactions: list[dict[str, any]], category: str) -> pd.DataFrame:
     """Фильтрует транзакции по заданной категории  за последние 3 месяца и возвращает DataFrame."""
     if not transactions:
-        print('Нет транзакций по заданной категории')
-        return pd.DataFrame()  # Возвращаем пустой DataFrame
-
+        print("Нет транзакций по заданной категории")
+        return
     df = pd.DataFrame(transactions)
-
-    # Проверяем, есть ли столбец "Категория"
     if "Категория" not in df.columns:
         raise ValueError('В данных нет столбца "Категория"')
-
     filtered_df = df[df["Категория"] == category]
-
     if filtered_df.empty:
-        print('По выбранной категории в указанный период трат нет')
-
+        print("По выбранной категории в указанный период трат нет")
     return filtered_df
 
 
-def create_response(datetime_str: str) -> str:
+def create_response(df: pd.DataFrame, datetime_str: str) -> str:
     """Функция формирования JSON-ответа для главной страницы"""
     from utils import greeting
+
     data = load_user_settings("user_settings.json")
     user_currencies = data.get("user_currencies", [])
     user_stocks = data.get("user_stocks", [])
-    path_to_datafile = str(data.get("path_to_datafile"))
-    all_transactions = convert_xlsx_to_dataframe(path_to_datafile)
-    trxns = all_transactions.to_dict(orient="records")
+    trxns = df.to_dict(orient="records")
     transactions = filter_from_month_begin(trxns, datetime_str)
 
     card_summary = {}
@@ -256,7 +247,4 @@ def create_response(datetime_str: str) -> str:
         "currency_rates": exchange_rates,
         "stock_prices": stock_prices,
     }
-
     return json.dumps(response, ensure_ascii=False, indent=4)
-
-

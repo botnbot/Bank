@@ -1,5 +1,6 @@
-from utils import filter_transactions_3_months, filter_transactions_by_category
 import pandas as pd
+
+from utils import filter_transactions_3_months, filter_transactions_by_category
 
 
 def spending_by_category(transactions: pd.DataFrame, category: str, datetime) -> pd.DataFrame:
