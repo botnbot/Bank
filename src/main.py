@@ -1,3 +1,5 @@
+import pytest
+from unittest.mock import patch
 import pandas as pd
 from _datetime import datetime
 
@@ -42,6 +44,3 @@ while menu not in ("1", "2", "3"):
             date = datetime.now()
         result_js = spending_by_category(df_to_func, cat, date)
         print(result_js)
-
-        if __name__ == "__main__":
-
