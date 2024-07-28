@@ -10,7 +10,6 @@ from src.views import main_page
 data = load_user_settings("user_settings.json")
 path_to_datafile = str(data.get("path_to_datafile"))
 
-list_to_func = convert_xlsx_to_list(path_to_datafile) # преобразуем из Excel, т.к. список словарей взять негде
 df_to_func = pd.read_excel(path_to_datafile)  # преобразуем из Excel, т.к. DataFrame взять негде
 
 datetime_str = '2018-06-18'
